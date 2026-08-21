@@ -1,0 +1,46 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+    commands:
+      - echo "Node $(node -v) / npm $(npm -v)"
+      # npm ci cai dung theo package-lock.json (gom ca devDependencies de chay test)
+      - npm ci
+
+  pre_build:
+    commands:
+      - echo "=== Lint & Test ==="
+      # --if-present: bo qua neu package.json chua khai bao script do
+      - npm run lint --if-present
+      - npm run test --if-present
+
+  build:
+    commands:
+      - echo "=== Build started on $(date) ==="
+      - npm run build --if-present
+
+  post_build:
+    commands:
+      - echo "=== Build completed on $(date) ==="
+      - echo "Commit $CODEBUILD_RESOLVED_SOURCE_VERSION"
+
+artifacts:
+  # Cac file duoc dong goi thanh source bundle (.zip) cho Elastic Beanstalk.
+  # KHONG dong goi node_modules: EB tu chay `npm ci --omit=dev` khi deploy
+  # vi bundle da co package-lock.json -> artifact nho, deploy deterministic.
+  files:
+    - server.js
+    - package.json
+    - package-lock.json
+    - Procfile
+    - public/**/*
+    - .ebextensions/**/*
+    - .platform/**/*
+  # Giu nguyen cau truc thu muc (public/ phai nam dung cho trong zip)
+  discard-paths: no
+
+cache:
+  paths:
+    - node_modules/**/*
